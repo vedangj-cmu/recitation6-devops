@@ -4,7 +4,7 @@ import requests
 import azure.functions as func
 from db import get_conn
 
-WAREHOUSE_URL = os.environ.get("WAREHOUSE_URL")  # e.g. APIM /warehouse URL
+WAREHOUSE_URL = os.environ.get("APPSETTING_WAREHOUSE_URL")  # e.g. APIM /warehouse URL
 
 def main(req: func.HttpRequest) -> func.HttpResponse:
     try:
@@ -50,11 +50,10 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
         return func.HttpResponse("payment failed", status_code=402)
 
     cur.execute(
-        "INSERT INTO orders (customer_email, status) VALUES (?, ?)",
-        (email, "PAID"),
-    )
-    cur.execute("SELECT SCOPE_IDENTITY()")
-    order_id = int(cur.fetchone()[0])
+    "INSERT INTO orders (customer_email, status) OUTPUT INSERTED.id VALUES (?, ?)",
+    (email, "PAID"),
+)
+    order_id = cur.fetchone()[0]
 
     for line in order_lines:
         cur.execute(
